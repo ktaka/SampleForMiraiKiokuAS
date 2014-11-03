@@ -23,6 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.ListActivity;
@@ -36,6 +37,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 public class MainActivity extends ListActivity {
@@ -67,6 +69,14 @@ public class MainActivity extends ListActivity {
         return true;
     }
 
+    protected void onListItemClick(ListView l, View v, int position, long id) {
+        Intent intent = new Intent(this, KiokuView.class);
+        KiokuItem item = (KiokuItem)l.getItemAtPosition(position);
+        intent.putExtra("ImageUrl", item.imageUrl);
+        intent.putExtra("Title", item.title);
+        startActivity(intent);
+    }
+
     private void getData() {
         // API アクセスのための url を文字列として組み立てます。
         // ここでは type と event-date のパラメータを指定しています。
@@ -79,6 +89,7 @@ public class MainActivity extends ListActivity {
     private class KiokuItem {
         String title;
         String thumbUrl;
+        String imageUrl;
     }
 
     private class KiokuArrayAdapter extends ArrayAdapter<KiokuItem> {
@@ -193,6 +204,7 @@ public class MainActivity extends ListActivity {
                 KiokuItem kioku = new KiokuItem();
                 kioku.title = item.getString("title");
                 kioku.thumbUrl = item.getString("thumb-url");
+                kioku.imageUrl = item.getString("image-url");
                 kiokuList.add(kioku);
             }
         }
