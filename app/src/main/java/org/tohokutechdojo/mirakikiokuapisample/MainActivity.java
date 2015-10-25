@@ -12,13 +12,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -124,10 +123,7 @@ public class MainActivity extends ListActivity {
     }
 
     private class AccessAPItask extends AsyncTask<String, Void, JSONObject> {
-        private DefaultHttpClient httpClient;
-
         public AccessAPItask() {
-            httpClient = new DefaultHttpClient();
         }
 
         @Override
@@ -147,29 +143,34 @@ public class MainActivity extends ListActivity {
                 Log.d("MiraiKiokuAPIsample", "execAPI=" + url);
                 // 文字列として組み立てた url で http の GET リクエストをサーバーに送ります。
                 // これが「API を呼び出す」ことになります。
-                HttpGet request = new HttpGet(url);
-                HttpResponse response = executeRequest(request);
+                URL urlObj = new URL(url);
+                HttpURLConnection urlConnection = (HttpURLConnection) urlObj.openConnection();
+                try {
+                    // サーバーからのステータスを取得します。
+                    int statusCode = urlConnection.getResponseCode();
+                    StringBuilder buf = new StringBuilder();
+                    InputStream in = urlConnection.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                    String l = null;
 
-                // サーバーからのステータスを取得します。
-                int statusCode = response.getStatusLine().getStatusCode();
-                StringBuilder buf = new StringBuilder();
-                InputStream in = response.getEntity().getContent();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                String l = null;
-
-                // サーバーからのレスポンスを行単位に読み込みます。
-                while((l = reader.readLine()) != null) {
-                    buf.append(l);
-//					Log.d("MiraiKiokuAPISample", l);
+                    // サーバーからのレスポンスを行単位に読み込みます。
+                    while ((l = reader.readLine()) != null) {
+                        buf.append(l);
+//	    				Log.d("MiraiKiokuAPISample", l);
+                    }
+                    if (statusCode == 200) {
+                        // ステータスが成功ならレスポンスのパース（解析）を行います。
+                        parseResponse(buf.toString());
+                    }
+                } catch (JSONException e) {
+                    Log.e("MiraiKiokuAPISample", "JSON error", e);
+                } finally {
+                    urlConnection.disconnect();
                 }
-                if(statusCode == 200) {
-                    // ステータスが成功ならレスポンスのパース（解析）を行います。
-                    parseResponse(buf.toString());
-                }
-            } catch(IOException e) {
+            } catch (MalformedURLException e) {
+                Log.e("MiraiKiokuAPISample", "Malformed URL", e);
+            } catch (IOException e) {
                 Log.e("MiraiKiokuAPISample", "IO error", e);
-            } catch(JSONException e) {
-                Log.e("MiraiKiokuAPISample", "JSON error", e);
             }
         }
 
@@ -194,15 +195,6 @@ public class MainActivity extends ListActivity {
                 kioku.title = item.getString("title");
                 kioku.thumbUrl = item.getString("thumb-url");
                 kiokuList.add(kioku);
-            }
-        }
-
-        private HttpResponse executeRequest(HttpRequestBase base) throws IOException {
-            try {
-                return httpClient.execute(base);
-            } catch(IOException e) {
-                base.abort();
-                throw e;
             }
         }
     }
